@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from flask import Flask, app, config
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -14,7 +16,7 @@ from .routes.admin import admin_bp
 def create_app(config_name= "default"):
     app = Flask(__name__)
     app.config.from_object(Config)
-    
+        
     # extenstions initialization
     db.init_app(app)
     jwt.init_app(app)

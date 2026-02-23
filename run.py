@@ -1,5 +1,10 @@
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file FIRST
+# This must happen before importing create_app
+load_dotenv()
 
 # Add the project directory to Python path
 project_dir = os.path.dirname(os.path.abspath(__file__))

@@ -1,29 +1,27 @@
 import os
+from dotenv import load_dotenv
+from datetime import timedelta
+
+load_dotenv()
 
 class Config:
-    # base configuration class
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+    # JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24) 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///library.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-string'
-    
-class DevelopmentConfig(Config):
-    # development configuration class
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///school_library.db'
-    DEBUG = True
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
 
+class DevelopmentConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///library_dev.db'
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)  # 24 hours for development
 
 class ProductionConfig(Config):
-    # production configuration class
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     DEBUG = False
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
-    
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)   # 1 hour for production
 
-
-config ={
+config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
-    "default": DevelopmentConfig
+    'default': DevelopmentConfig
 }
