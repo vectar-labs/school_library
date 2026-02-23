@@ -13,7 +13,7 @@ from .routes.admin import admin_bp
 
 def create_app(config_name= "default"):
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
+    app.config.from_object(Config)
     
     # extenstions initialization
     db.init_app(app)
@@ -29,11 +29,11 @@ def create_app(config_name= "default"):
         db.create_all()
         
     # create a default admin user if not exists
-    from app.models import User
+    from app.models import Admin
     from werkzeug.security import generate_password_hash
     with app.app_context():
-        if not User.query.filter_by(username='admin').first():
-            admin_user = User(username='admin', password=generate_password_hash('101admin101'), role='admin')
+        if not Admin.query.filter_by(email='admin@example.com').first():
+            admin_user = Admin(firstname='Abdulaziz',middlename="Y", lastname='Sadi', email='admin@example.com', password_hash=generate_password_hash('101admin101'))
             db.session.add(admin_user)
             db.session.commit()
             
