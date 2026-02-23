@@ -60,12 +60,19 @@ class Book(db.Model):
             'isbn': self.isbn,
             'available_copies': self.available_copies
         }
-        
+
+class LibraryMember(db.Model):
+    __tablename__ = 'library_members'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    membership_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    is_active = db.Column(db.Boolean, default=True)
 
 class Loan(db.Model):
     __tablename__ = 'loans'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    library_member_id = db.Column(db.Integer, db.ForeignKey('library_members.id'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
     loan_request_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     approved_date = db.Column(db.DateTime, nullable=True)
