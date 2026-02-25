@@ -1,10 +1,10 @@
 from datetime import timedelta
 
 from flask import Blueprint, request, jsonify
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, jwt_required
 from app.auth import admin_required
-from app.models import Admin, Book, Student, Loan, BookCategory, db
+from app.models import Admin, Book, Student, Loan, BookCategory, db, GradeLevel
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -30,7 +30,16 @@ def admin_login_required():
 @jwt_required()
 @admin_required
 def dashboard():
-    return jsonify({'msg': 'Welcome to the admin dashboard!'})
+    # get total books, students, and loans count
+    total_books = Book.query.count()
+    total_students = Student.query.count()
+    total_loans = Loan.query.count()
+    return jsonify({
+        'msg': 'Welcome to the admin dashboard!',
+        'total_books': total_books,
+        'total_students': total_students,
+        'total_loans': total_loans
+    })
 
 
 # Books management routes
@@ -55,7 +64,7 @@ def add_category():
     return jsonify({'msg': 'Book category added successfully!'}), 201
 
 
-@admin_bp.post('/books/categories/edit/<int:category_id>')
+@admin_bp.post('/books/categories/update/<int:category_id>')
 @jwt_required()
 @admin_required
 def edit_category(category_id):
@@ -201,23 +210,69 @@ def view_overdue_loans():
 
 # students management routes
 
-@admin_bp.post('/students')
+# students registration 
+
+@admin_bp.post('/register_student')
 @jwt_required()
 @admin_required
-def add_student():
-    data = request.get_json()
-    # Logic to add a new student to the database
-    return jsonify({'msg': 'Student added successfully!'}), 201
 
-@admin_bp.put('/students/<int:student_id>')
+def register():
+    data = request.get_json()
+    
+    firstname = data.get('firstname')
+    middlename = data.get('middlename')
+    lastname = data.get('lastname')
+    email = data.get('email')
+    password = data.get('password_hash')
+    grade_level_id = data.get('grade_level_id')
+    role = 'student'
+    
+    if not all([firstname, lastname, email, password]):
+        return jsonify({'msg': 'Missing required fields!'}), 400
+    
+    if Student.query.filter_by(email=email).first():
+        return jsonify({'msg': 'Email already registered!'}), 400
+    
+    new_student = Student(
+        firstname=firstname,
+        middlename=middlename,
+        lastname=lastname,
+        email=email,
+        password_hash=generate_password_hash(password),  # In production, hash the password before storing
+        grade_level_id=grade_level_id,
+        role=role
+    )
+    db.session.add(new_student)
+    db.session.commit()
+        
+    
+    return jsonify({'msg': 'Student registered successfully!'}), 201
+
+# update student information routes
+@admin_bp.put('/update_student/<int:student_id>')
 @jwt_required()
 @admin_required
 def update_student(student_id):
     data = request.get_json()
-    # Logic to update student details in the database
+    student = Student.query.get_or_404(student_id)
+    
+    if not student:
+        return jsonify({'msg': 'Student not found!'}), 404
+    
+    student.firstname = data.get('firstname', student.firstname)
+    student.middlename = data.get('middlename', student.middlename)
+    student.lastname = data.get('lastname', student.lastname)
+    student.email = data.get('email', student.email)
+    student.grade_level_id = data.get('grade_level_id', student.grade_level_id)
+    
+    if data.get('password_hash'):
+        student.password_hash = generate_password_hash(data['password_hash'])
+    
+    db.session.commit()
+    
     return jsonify({'msg': 'Student updated successfully!'})
 
-@admin_bp.delete('/students/<int:student_id>')
+@admin_bp.delete('/delete_student/<int:student_id>')
 @jwt_required()
 @admin_required
 def delete_student(student_id):
@@ -237,3 +292,17 @@ def student_history(student_id):
 
 
 
+# Class levels management routes
+
+@admin_bp.post('/class_levels/add')
+@jwt_required() 
+@admin_required
+def add_class_level():
+    data = request.get_json()
+    name = data.get('name')
+    if not name:
+        return jsonify({'msg': 'Missing required field: name'}), 400
+    new_grade_level = GradeLevel(name=name)
+    db.session.add(new_grade_level)
+    db.session.commit()
+    return jsonify({'msg': 'Class level added successfully!'}), 201

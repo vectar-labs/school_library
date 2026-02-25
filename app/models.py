@@ -24,9 +24,9 @@ class GradeLevel(db.Model):
 class Student(db.Model):
     __tablename__ = 'students'  # Changed from 'users' to be consistent
     id = db.Column(db.Integer, primary_key=True)
-    firstname = db.Column(db.String(80), nullable=False)  # Removed unique=True
+    firstname = db.Column(db.String(80), nullable=False)  
     middlename = db.Column(db.String(80), nullable=True)
-    lastname = db.Column(db.String(80), nullable=False)   # Removed unique=True
+    lastname = db.Column(db.String(80), nullable=False)   
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default='student')

@@ -46,3 +46,6 @@ def invalid_token_response(callback):
 @jwt.expired_token_loader
 def expired_token_response(jwt_header, jwt_payload):
     return jsonify({'msg': 'Token has expired'}), 401
+
+
+# handle revoked tokens if you implement token revocation for logout functionality
