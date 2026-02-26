@@ -1,3 +1,6 @@
+import datetime
+from time import timezone
+
 from flask import Blueprint, request, jsonify
 from app.models import Student, Book, Loan
 from app.models import db
@@ -136,11 +139,19 @@ def borrow_book_request(book_id):
     if book.available_copies <= 0:
         return jsonify({'msg': 'Book is not available for borrowing!'}), 400
     
-    new_loan = Loan(
-        student_id=student_id,
-        book_id=book_id,
-        status='pending'
-    )
+    new_loan = {
+        'student_id': student_id,
+        'library_member_id': None,
+        'loan_request_date': datetime.now(timezone.utc),
+        'approved_date': None,
+        'return_date': None,
+        'due_date': None,  
+        'admin_id': None,  
+        'approved_by': None,  
+        'book_id': book_id,
+        'status': 'pending'
+        
+    }
     db.session.add(new_loan)
     db.session.commit()
     

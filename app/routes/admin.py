@@ -1,10 +1,11 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+from json import load
 
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, jwt_required
 from app.auth import admin_required
-from app.models import Admin, Book, Student, Loan, BookCategory, db, GradeLevel
+from app.models import Admin, Book, InLibraryUse, Student, Loan, BookCategory, db, GradeLevel, LibraryMember
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -88,8 +89,8 @@ def delete_category(category_id):
 
 
 @admin_bp.get("/books/all")
-# @jwt_required
-# @admin_required
+@jwt_required()
+@admin_required
 def list_books():
     books = Book.query.all()
     
@@ -155,57 +156,10 @@ def update_book(book_id):
 @jwt_required()
 @admin_required
 def delete_book(book_id):
-    # Logic to delete a book from the database
+    book = Book.query.get_or_404(book_id)
+    db.session.delete(book)
+    db.session.commit()
     return jsonify({'msg': 'Book deleted successfully!'})
-
-
-# Books loans/in libarary use athorization routes
-
-@admin_bp.get('/loans')
-@jwt_required()
-@admin_required
-def view_loans():
-    # Logic to retrieve all book loans from the database
-    return jsonify({'loans': []})  # Placeholder response
-
-@admin_bp.post('/loans/<int:loan_id>/approve')
-@jwt_required()
-@admin_required
-def approve_loan(loan_id):
-    # Logic to approve a loan in the database
-    return jsonify({'msg': 'Loan approved successfully!'})
-
-@admin_bp.get('/pending_loans')
-@jwt_required()
-@admin_required
-def view_pending_loans():
-    # Logic to retrieve all pending book loans from the database
-    return jsonify({'pending_loans': []})  # Placeholder response
-
-
-@admin_bp.post('/loans/<int:loan_id>/reject')
-@jwt_required()
-@admin_required
-def reject_loan(loan_id):
-    # Logic to reject a loan in the database
-    return jsonify({'msg': 'Loan rejected successfully!'})
-
-
-@admin_bp.post('/loans/<int:loan_id>/return')
-@jwt_required()
-@admin_required
-def return_book(loan_id):
-    # Logic to mark a loan as returned in the database
-    return jsonify({'msg': 'Book returned successfully!'})
-
-# overdue books routes
-
-@admin_bp.get('/loans/overdue')
-@jwt_required()
-@admin_required
-def view_overdue_loans():
-    # Logic to retrieve all overdue book loans from the database
-    return jsonify({'overdue_loans': []})  # Placeholder response
 
 
 # students management routes
@@ -276,7 +230,9 @@ def update_student(student_id):
 @jwt_required()
 @admin_required
 def delete_student(student_id):
-    # Logic to delete a student from the database
+    student = Student.query.get_or_404(student_id)
+    db.session.delete(student)
+    db.session.commit()
     return jsonify({'msg': 'Student deleted successfully!'})
 
 
@@ -286,40 +242,127 @@ def delete_student(student_id):
 @jwt_required()
 @admin_required
 def student_history(student_id):
-    # Logic to retrieve a student's borrowing history from the database
-    return jsonify({'history': []})  # Placeholder response
-
-
+    student_loans = Loan.query.filter_by(student_id=student_id).all()
+    student_in_library_uses = InLibraryUse.query.filter_by(student_id=student_id).all()
+     
+     
+    return jsonify({'history': {
+        'loans': [loan.to_dict() for loan in student_loans],
+        'in_library_uses': [use.to_dict() for use in student_in_library_uses]
+    }})  
+    
+    
+    
 # Libaray membership management routes
 
 @admin_bp.post('/library_membership/<int:student_id>/activate')
 @jwt_required()
 @admin_required
 def activate_membership(student_id):
-    # Logic to activate a student's library membership in the database
+    student = LibraryMember.query.get_or_404(student_id)
+    student.is_active = True
+    db.session.commit()
     return jsonify({'msg': 'Library membership activated successfully!'})
 
 @admin_bp.post('/library_membership/<int:student_id>/deactivate')
 @jwt_required()
 @admin_required
 def deactivate_membership(student_id):
-    # Logic to deactivate a student's library membership in the database
+    student = LibraryMember.query.get_or_404(student_id)
+    student.is_active = False
+    db.session.commit()
     return jsonify({'msg': 'Library membership deactivated successfully!'})
 
-# loans management routes
+
+
+# Books loans/in libarary use athorization routes
+
 @admin_bp.get('/loans')
 @jwt_required()
 @admin_required
 def view_loans():
-    # Logic to retrieve all book loans from the database
-    return jsonify({'loans': []})  # Placeholder response
+    loans = Loan.query.all()
+    return jsonify({'loans': [loan.to_dict() for loan in loans], 'count': len(loans)})
+
 
 @admin_bp.post('/loans/<int:loan_id>/approve')
 @jwt_required()
 @admin_required
 def approve_loan(loan_id):
-    # Logic to approve a loan in the database
+    
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.status != 'pending':
+        return jsonify({'msg': 'Only pending loans can be approved!'}), 400
+    loan.status = 'approved'
+    loan.approved_date = datetime.now(timezone.utc)
+        # Set due date to 14 days from approval
+    loan.due_date = loan.approved_date + timedelta(days=14)
+    db.session.commit()
     return jsonify({'msg': 'Loan approved successfully!'})
+
+@admin_bp.get('/pending_loans')
+@jwt_required()
+@admin_required
+def view_pending_loans():
+    pending_loans = Loan.query.filter_by(status='pending').all()
+    return jsonify({'pending_loans': [loan.to_dict() for loan in pending_loans]})
+
+
+@admin_bp.post('/loans/<int:loan_id>/reject')
+@jwt_required()
+@admin_required
+def reject_loan(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.status != 'pending':
+        return jsonify({'msg': 'Only pending loans can be rejected!'}), 400
+    loan.status = 'rejected'
+    db.session.commit()     
+    return jsonify({'msg': 'Loan rejected successfully!'})
+
+
+@admin_bp.post('/loans/<int:loan_id>/return')
+@jwt_required()
+@admin_required
+def return_book(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.status != 'approved':
+        return jsonify({'msg': 'Only approved loans can be returned!'}), 400
+    loan.status = 'returned'
+    loan.return_date = datetime.now(timezone.utc)
+    db.session.commit()
+    return jsonify({'msg': 'Book returned successfully!'})
+
+# overdue books routes
+
+@admin_bp.get('/loans/overdue')
+@jwt_required()
+@admin_required
+def view_overdue_loans():
+    loans = Loan.query.filter(Loan.status == 'approved', Loan.due_date < datetime.now(timezone.utc)).all()
+    return jsonify({'overdue_loans': [loan.to_dict() for loan in loans], 'count': len(loans)})
+   
+
+# approve loan request route
+@admin_bp.get('/loans/<int:loan_id>')
+@jwt_required()
+@admin_required
+def view_loan_details(loan_id):
+    # Logic to retrieve specific loan details from the database
+    loan = Loan.query.get_or_404(loan_id)
+    return jsonify({
+        'loan_details': {
+            'id': loan.id,
+            'student_id': loan.student_id,
+            'book_id': loan.book_id,
+            'loan_request_date': loan.loan_request_date,
+            'approved_date': loan.approved_date,
+            'return_date': loan.return_date,
+            'due_date': loan.due_date,
+            'admin_id': loan.admin_id,
+            'approved_by': loan.approved_by,
+            'status': loan.status
+        }
+    })
 
 
 
