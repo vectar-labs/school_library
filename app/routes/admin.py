@@ -290,6 +290,37 @@ def student_history(student_id):
     return jsonify({'history': []})  # Placeholder response
 
 
+# Libaray membership management routes
+
+@admin_bp.post('/library_membership/<int:student_id>/activate')
+@jwt_required()
+@admin_required
+def activate_membership(student_id):
+    # Logic to activate a student's library membership in the database
+    return jsonify({'msg': 'Library membership activated successfully!'})
+
+@admin_bp.post('/library_membership/<int:student_id>/deactivate')
+@jwt_required()
+@admin_required
+def deactivate_membership(student_id):
+    # Logic to deactivate a student's library membership in the database
+    return jsonify({'msg': 'Library membership deactivated successfully!'})
+
+# loans management routes
+@admin_bp.get('/loans')
+@jwt_required()
+@admin_required
+def view_loans():
+    # Logic to retrieve all book loans from the database
+    return jsonify({'loans': []})  # Placeholder response
+
+@admin_bp.post('/loans/<int:loan_id>/approve')
+@jwt_required()
+@admin_required
+def approve_loan(loan_id):
+    # Logic to approve a loan in the database
+    return jsonify({'msg': 'Loan approved successfully!'})
+
 
 
 # Class levels management routes

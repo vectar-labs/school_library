@@ -87,22 +87,64 @@ def logout():
 
 # get a list of books available for borrowing
 @student_bp.get('/books')
+@jwt_required()
+@student_required
 def view_books():
-    # Logic to retrieve all available books from the database
-    return jsonify({'books': []})  # Placeholder response
+    books = Book.query.all()
+    book_list = []
+    for book in books:
+        book_list.append({
+            'id': book.id,
+            'title': book.title,
+            'author': book.author,
+            'isbn': book.isbn,
+            'available_copies': book.available_copies
+        })
+    return jsonify({'books': book_list})    
 
 #  get specific book details
 @student_bp.get('/books/<int:book_id>')
+@jwt_required()
+@student_required
 def view_book_details(book_id):
-    # Logic to retrieve specific book details from the database
-    return jsonify({'book': {}})  # Placeholder response
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({'msg': 'Book not found!'}), 404
+    
+    return jsonify({
+        'book': {
+            'id': book.id,
+            'title': book.title,
+            'author': book.author,
+            'isbn': book.isbn,
+            'available_copies': book.available_copies
+        }
+    })
 
 
 #  Borrow a book operations
 
-@student_bp.post('/loans')
-def borrow_book_request():
-    return jsonify({'msg': 'Book loan request submitted successfully!'})
+@student_bp.post('/loans/<int:book_id>/borrow')
+@jwt_required()
+@student_required
+def borrow_book_request(book_id):
+    student_id = get_jwt_identity()
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({'msg': 'Book not found!'}), 404
+    
+    if book.available_copies <= 0:
+        return jsonify({'msg': 'Book is not available for borrowing!'}), 400
+    
+    new_loan = Loan(
+        student_id=student_id,
+        book_id=book_id,
+        status='pending'
+    )
+    db.session.add(new_loan)
+    db.session.commit()
+    
+    return jsonify({'msg': 'Book loan request submitted successfully!'}), 201
 
 
 @student_bp.get('/loans_history')

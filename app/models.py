@@ -86,7 +86,7 @@ class Book(db.Model):
 class LibraryMember(db.Model):
     __tablename__ = 'library_members'
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)  # Changed from user_id
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)  
     membership_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     is_active = db.Column(db.Boolean, default=True)
     
@@ -97,7 +97,7 @@ class LibraryMember(db.Model):
 class Loan(db.Model):
     __tablename__ = 'loans'
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)  # Changed from user_id
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False) 
     library_member_id = db.Column(db.Integer, db.ForeignKey('library_members.id'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
     loan_request_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -106,8 +106,8 @@ class Loan(db.Model):
     due_date = db.Column(db.DateTime, nullable=True)  # Added due date
     status = db.Column(db.String(20), default='pending')  # pending, approved, borrowed, returned, rejected, overdue
     
-    admin_id = db.Column(db.Integer, db.ForeignKey('admins.id'), nullable=True)  # Changed to admins.id
-    approved_by = db.relationship('Admin', foreign_keys=[admin_id])  # Changed to Admin model
+    admin_id = db.Column(db.Integer, db.ForeignKey('admins.id'), nullable=True)  
+    approved_by = db.relationship('Admin', foreign_keys=[admin_id])  
 
     def to_dict(self):
         return {
@@ -126,7 +126,7 @@ class Loan(db.Model):
 class InLibraryUse(db.Model):
     __tablename__ = 'in_library_uses'
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)  # Changed from user_id
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)  
     book_id = db.Column(db.Integer, db.ForeignKey('books.id'), nullable=False)
     use_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     end_time = db.Column(db.DateTime, nullable=True)  # Added end time for tracking
