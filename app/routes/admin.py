@@ -45,7 +45,7 @@ def dashboard():
 
 # Books management routes
 
-@admin_bp.post('/books/categories/add')
+@admin_bp.post('/books/categories')
 @jwt_required()
 @admin_required
 def add_category():
@@ -88,7 +88,7 @@ def delete_category(category_id):
     return jsonify({'msg': 'Category deleted successfully!'})
 
 
-@admin_bp.get("/books/all")
+@admin_bp.get("/books")
 @jwt_required()
 @admin_required
 def list_books():
@@ -97,7 +97,7 @@ def list_books():
     return jsonify({'books':[book.to_dict() for book in books], 'count': len(books)})
 
 
-@admin_bp.post('/books/add')
+@admin_bp.post('/books')
 @jwt_required()
 @admin_required
 def add_book():
